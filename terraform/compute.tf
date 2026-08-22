@@ -94,6 +94,7 @@ resource "azurerm_linux_virtual_machine" "management" {
   depends_on = [
     azurerm_private_endpoint.functions,
     azurerm_private_endpoint.key_vault,
+    azurerm_subnet_nat_gateway_association.management,
   ]
 }
 

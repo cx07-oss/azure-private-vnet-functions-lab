@@ -120,6 +120,14 @@ module "diagnostics_management_vm" {
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
 }
 
+module "diagnostics_management_nat_gateway" {
+  source = "./modules/diagnostic-setting"
+
+  name                       = "diag-management-nat"
+  target_resource_id         = azurerm_nat_gateway.management.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+}
+
 module "diagnostics_bastion" {
   source = "./modules/diagnostic-setting"
 

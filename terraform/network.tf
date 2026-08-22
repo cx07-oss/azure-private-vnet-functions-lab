@@ -80,11 +80,44 @@ resource "azurerm_subnet" "management" {
   resource_group_name  = azurerm_resource_group.main.name
   virtual_network_name = azurerm_virtual_network.main.name
   address_prefixes     = [local.subnets.management.address_prefix]
+  # New Azure VNets are private by default. The NAT Gateway below is the only
+  # public egress path; the VM still has no public IP or unsolicited ingress.
+  default_outbound_access_enabled = false
 }
 
 resource "azurerm_subnet_network_security_group_association" "management" {
   subnet_id                 = azurerm_subnet.management.id
   network_security_group_id = azurerm_network_security_group.management.id
+}
+
+resource "azurerm_public_ip" "management_egress" {
+  name                = "pip-nat-${local.stem}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  tags                = local.standard_tags
+}
+
+resource "azurerm_nat_gateway" "management" {
+  name                    = "nat-management-${local.stem}"
+  resource_group_name     = azurerm_resource_group.main.name
+  location                = azurerm_resource_group.main.location
+  sku_name                = "Standard"
+  idle_timeout_in_minutes = 10
+  tags                    = local.standard_tags
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "management" {
+  nat_gateway_id       = azurerm_nat_gateway.management.id
+  public_ip_address_id = azurerm_public_ip.management_egress.id
+}
+
+resource "azurerm_subnet_nat_gateway_association" "management" {
+  subnet_id      = azurerm_subnet.management.id
+  nat_gateway_id = azurerm_nat_gateway.management.id
+
+  depends_on = [azurerm_nat_gateway_public_ip_association.management]
 }
 
 resource "azurerm_subnet" "bastion" {

@@ -4,7 +4,7 @@ This repository builds a deployable, passwordless Azure lab in which two private
 
 The implementation uses Terraform, Azure Functions Flex Consumption, user-assigned and system-assigned managed identities, Azure RBAC, Key Vault references, Log Analytics/Application Insights through Azure Monitor Private Link, and a Bastion-only management VM.
 
-> **Cost warning:** Service Bus Premium and Bastion Standard are the largest fixed-cost resources in this lab. Deploy it for a focused exercise and destroy it when finished.
+> **Cost warning:** Service Bus Premium, Bastion Standard, and the NAT Gateway have fixed hourly costs. Deploy the lab for a focused exercise and destroy it when finished.
 
 ## Architecture
 
@@ -40,7 +40,7 @@ Request flow:
 - Service Bus Premium with local authentication disabled and a duplicate-detecting queue.
 - Serverless Cosmos DB with local/key authentication disabled and RBAC assignments scoped to the orders container.
 - RBAC-mode Key Vault containing an API client token and passwordless Cosmos connection endpoint. Both are consumed as Function App Key Vault references.
-- A Linux management VM with only a private NIC, protected by an NSG and reached through Bastion Standard.
+- A Linux management VM with only a private NIC, protected by an NSG and reached through Bastion Standard. Its private subnet uses an explicit outbound-only NAT Gateway for operating-system bootstrap and deployment tooling.
 - Log Analytics, workspace-based Application Insights, AMPLS, a private Data Collection Endpoint, resource diagnostic settings, Azure Monitor Agent, and a Linux performance/syslog DCR.
 - Packaging, private deployment, DNS validation, and end-to-end smoke-test scripts.
 
@@ -83,16 +83,20 @@ Get the generated tunnel command:
 terraform -chdir=terraform output -raw bastion_tunnel_command
 ```
 
-Run that command in one terminal. In another terminal, copy the repository and connect through the local tunnel:
+Run that command in one terminal. In another, archive only the committed source, copy it through the tunnel, and connect. This deliberately excludes local state, plans, credentials, and virtual environments:
 
 ```powershell
-scp -P 2222 -i ~/.ssh/vnetlab -r . azureadmin@127.0.0.1:~/vnetlab
+git archive --format=zip --output=vnetlab-source.zip HEAD
+scp -P 2222 -i ~/.ssh/vnetlab vnetlab-source.zip azureadmin@127.0.0.1:~/
 ssh -p 2222 -i ~/.ssh/vnetlab azureadmin@127.0.0.1
 ```
 
 On the VM:
 
 ```bash
+mkdir -p ~/vnetlab
+unzip -q ~/vnetlab-source.zip -d ~/vnetlab
+rm -f ~/vnetlab-source.zip
 cd ~/vnetlab
 source /etc/profile.d/vnetlab.sh
 az login --identity
@@ -183,3 +187,4 @@ Key Vault purge protection is intentionally enabled. Destroy schedules the vault
 - [Service Bus Private Link](https://learn.microsoft.com/azure/service-bus-messaging/private-link-service)
 - [Azure Monitor Private Link](https://learn.microsoft.com/azure/azure-monitor/fundamentals/private-link-configure)
 - [Azure diagnostic settings](https://learn.microsoft.com/azure/azure-monitor/platform/diagnostic-settings)
+- [Default outbound access and private Azure subnets](https://learn.microsoft.com/azure/virtual-network/ip-services/default-outbound-access)

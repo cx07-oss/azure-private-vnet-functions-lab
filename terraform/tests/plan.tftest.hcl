@@ -161,6 +161,12 @@ mock_provider "azurerm" {
       id = "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-mock/providers/Microsoft.Insights/dataCollectionEndpoints/dce-mock"
     }
   }
+
+  mock_resource "azurerm_nat_gateway" {
+    defaults = {
+      id = "/subscriptions/33333333-3333-3333-3333-333333333333/resourceGroups/rg-mock/providers/Microsoft.Network/natGateways/nat-mock"
+    }
+  }
 }
 
 mock_provider "azapi" {
@@ -216,5 +222,10 @@ run "secure_private_lab_plan" {
   assert {
     condition     = azurerm_cosmosdb_account.main.local_authentication_enabled == false
     error_message = "Cosmos DB local authentication must remain disabled."
+  }
+
+  assert {
+    condition     = azurerm_subnet.management.default_outbound_access_enabled == false
+    error_message = "The management VM must use explicit NAT egress instead of default outbound access."
   }
 }

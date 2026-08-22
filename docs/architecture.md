@@ -5,7 +5,7 @@
 | Subnet | CIDR | Purpose | Delegation / policy |
 |---|---:|---|---|
 | `snet-functions` | `10.42.0.0/26` | Outbound integration for both Flex apps | Delegated to `Microsoft.App/environments`; no endpoints |
-| `snet-management` | `10.42.1.0/24` | Management VM private NIC | SSH allowed only from Bastion |
+| `snet-management` | `10.42.1.0/24` | Management VM private NIC | SSH only from Bastion; default outbound disabled; explicit NAT egress |
 | `AzureBastionSubnet` | `10.42.2.0/26` | Bastion | Required exact name; dedicated |
 | `snet-pe-functions` | `10.42.10.0/24` | Both Function inbound endpoints | NSG allows workload subnets on 443 |
 | `snet-pe-storage` | `10.42.11.0/24` | Blob, Queue, and Table endpoints | NSG allows workload subnets on 443 |
@@ -79,6 +79,7 @@ The production evolution is a transactional-outbox pattern: write the order and 
 
 - Service Bus Premium is required for Private Link and has a fixed capacity cost.
 - Bastion Standard is used for tunneling/file transfer and has a fixed hourly cost.
+- A NAT Gateway supplies explicit outbound-only connectivity for VM bootstrap, package updates, and deployment tooling; it adds a fixed hourly cost but no unsolicited inbound path.
 - Cosmos DB serverless and Function Flex Consumption reduce idle workload cost.
 - Both Functions share a `/26` integration subnet, which Microsoft recommends for multiple Flex apps. Production teams may separate apps further for scale and fault isolation.
 - The header token is positive application authentication on top of private networking. For production user/client authentication, replace it with App Service Authentication using Microsoft Entra and an explicit API audience.

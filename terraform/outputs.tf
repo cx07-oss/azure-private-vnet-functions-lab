@@ -32,6 +32,11 @@ output "management_vm" {
   }
 }
 
+output "management_egress_ip" {
+  description = "Explicit outbound-only public IP used by the management subnet NAT Gateway."
+  value       = azurerm_public_ip.management_egress.ip_address
+}
+
 output "bastion" {
   description = "Bastion details. Its public IP is the lab's deliberate management-plane ingress exception."
   value = {
