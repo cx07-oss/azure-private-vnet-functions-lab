@@ -1,0 +1,6 @@
+# Phase 2 only: copy this file to backend.tf after creating the separate state
+# storage account described in docs/azure-devops.md. This file contains no
+# credentials and may be committed once the backend is adopted.
+terraform {
+  backend "azurerm" {}
+}

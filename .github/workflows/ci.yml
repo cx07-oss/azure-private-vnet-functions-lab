@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+          terraform_wrapper: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            functions/producer/requirements.txt
+            functions/worker/requirements.txt
+
+      - name: Validate and test Terraform
+        env:
+          TF_IN_AUTOMATION: "true"
+        run: |
+          terraform -chdir=terraform fmt -check -recursive
+          terraform -chdir=terraform init -backend=false -input=false
+          terraform -chdir=terraform validate
+          terraform -chdir=terraform test
+
+      - name: Lint, test, and index both Function apps
+        run: |
+          python -m pip install --disable-pip-version-check \
+            -r requirements-dev.txt \
+            -r functions/producer/requirements.txt \
+            -r functions/worker/requirements.txt
+          python -m pip check
+          python -m ruff format --check functions tests
+          python -m ruff check functions tests
+          python -m pytest
+          (cd functions/producer && python -c \
+            "import function_app; assert len(function_app.app.get_functions()) == 2")
+          (cd functions/worker && python -c \
+            "import function_app; assert len(function_app.app.get_functions()) == 3")
+
+      - name: Check shell scripts
+        run: bash -n scripts/bootstrap-ado-agent.sh scripts/deploy-functions.sh scripts/vm-smoke-test.sh

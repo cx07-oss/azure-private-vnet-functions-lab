@@ -1,0 +1,56 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+
+packages:
+  - ca-certificates
+  - curl
+  - dnsutils
+  - git
+  - gnupg
+  - jq
+  - python3
+  - python3-pip
+  - python3-venv
+  - unzip
+  - zip
+
+write_files:
+  - path: /etc/profile.d/vnetlab.sh
+    permissions: "0644"
+    content: |
+      export VNETLAB_RESOURCE_GROUP="${resource_group_name}"
+      export VNETLAB_PRODUCER_APP="${producer_app_name}"
+      export VNETLAB_WORKER_APP="${worker_app_name}"
+      export VNETLAB_KEY_VAULT="${key_vault_name}"
+
+  - path: /opt/vnetlab/README.txt
+    permissions: "0644"
+    content: |
+      This VM has no public IP. Connect through Azure Bastion.
+
+      Useful first commands:
+        source /etc/profile.d/vnetlab.sh
+        az login --identity
+        nslookup $VNETLAB_PRODUCER_APP.azurewebsites.net
+        nslookup $VNETLAB_WORKER_APP.azurewebsites.net
+        nslookup ${storage_blob_fqdn}
+        nslookup ${service_bus_fqdn}
+        nslookup ${cosmos_fqdn}
+        nslookup ${key_vault_fqdn}
+
+      Copy the repository to this VM, then run scripts/deploy-functions.sh and
+      scripts/vm-smoke-test.sh. RBAC can take several minutes to propagate.
+
+runcmd:
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -sLS https://packages.microsoft.com/keys/microsoft.asc -o /tmp/microsoft.asc
+  - gpg --dearmor --yes -o /etc/apt/keyrings/microsoft.gpg /tmp/microsoft.asc
+  - chmod go+r /etc/apt/keyrings/microsoft.gpg
+  - sh -c 'echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ noble main" > /etc/apt/sources.list.d/azure-cli.list'
+  - apt-get update
+  - apt-get install -y azure-cli
+  - mkdir -p /opt/vnetlab/config
+  - chown -R ${admin_username}:${admin_username} /opt/vnetlab
+
+final_message: "VNet lab management VM bootstrap complete."

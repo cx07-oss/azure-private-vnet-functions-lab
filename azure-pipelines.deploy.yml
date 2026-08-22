@@ -1,0 +1,139 @@
+trigger: none
+pr: none
+
+parameters:
+  - name: applyInfrastructure
+    displayName: Apply a newly generated Terraform plan
+    type: boolean
+    default: false
+  - name: deployFunctions
+    displayName: Deploy both Function packages over private SCM
+    type: boolean
+    default: false
+  - name: runSmokeTest
+    displayName: Run the end-to-end private smoke test
+    type: boolean
+    default: false
+
+variables:
+  # Replace these values in the protected deployment pipeline or a variable group.
+  agentPool: vnetlab-private
+  azureServiceConnection: replace-with-workload-identity-service-connection
+  backendSecureFile: backend.hcl
+  tfvarsSecureFile: terraform.tfvars
+  vnetlabResourceGroup: replace-after-first-apply
+  vnetlabProducerApp: replace-after-first-apply
+  vnetlabWorkerApp: replace-after-first-apply
+  vnetlabKeyVault: replace-after-first-apply
+
+pool:
+  name: $(agentPool)
+
+stages:
+  - stage: Infrastructure
+    displayName: Trusted infrastructure plan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: TerraformPlan
+        steps:
+          - checkout: self
+            persistCredentials: false
+          - task: DownloadSecureFile@1
+            name: backendConfig
+            inputs:
+              secureFile: $(backendSecureFile)
+          - task: DownloadSecureFile@1
+            name: terraformVars
+            inputs:
+              secureFile: $(tfvarsSecureFile)
+          - task: AzureCLI@2
+            displayName: Terraform plan
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -euo pipefail
+                plan_file="$(Agent.TempDirectory)/vnetlab.tfplan"
+                trap 'rm -f -- "${plan_file}"' EXIT
+                export ARM_CLIENT_ID="${servicePrincipalId}"
+                export ARM_TENANT_ID="${tenantId}"
+                export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+                export ARM_USE_OIDC=true
+                export ARM_OIDC_TOKEN="${idToken}"
+                terraform -chdir=terraform init \
+                  -input=false \
+                  -backend-config="$(backendConfig.secureFilePath)"
+                terraform -chdir=terraform plan \
+                  -input=false \
+                  -var-file="$(terraformVars.secureFilePath)" \
+                  -out="${plan_file}"
+
+      # The protected Environment approval is requested only for an explicit apply.
+      # The plan is regenerated so a credential-bearing plan is never published.
+      - deployment: TerraformApply
+        dependsOn: TerraformPlan
+        condition: and(succeeded(), eq('${{ parameters.applyInfrastructure }}', 'true'))
+        environment: vnetlab-apply
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  persistCredentials: false
+                - task: DownloadSecureFile@1
+                  name: backendConfig
+                  inputs:
+                    secureFile: $(backendSecureFile)
+                - task: DownloadSecureFile@1
+                  name: terraformVars
+                  inputs:
+                    secureFile: $(tfvarsSecureFile)
+                - task: AzureCLI@2
+                  displayName: Terraform plan and apply
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    addSpnToEnvironment: true
+                    inlineScript: |
+                      set -euo pipefail
+                      plan_file="$(Agent.TempDirectory)/vnetlab.tfplan"
+                      trap 'rm -f -- "${plan_file}"' EXIT
+                      export ARM_CLIENT_ID="${servicePrincipalId}"
+                      export ARM_TENANT_ID="${tenantId}"
+                      export ARM_SUBSCRIPTION_ID="$(az account show --query id -o tsv)"
+                      export ARM_USE_OIDC=true
+                      export ARM_OIDC_TOKEN="${idToken}"
+                      terraform -chdir=terraform init \
+                        -input=false \
+                        -backend-config="$(backendConfig.secureFilePath)"
+                      terraform -chdir=terraform plan \
+                        -input=false \
+                        -var-file="$(terraformVars.secureFilePath)" \
+                        -out="${plan_file}"
+                      terraform -chdir=terraform apply -input=false "${plan_file}"
+
+  - stage: Applications
+    displayName: Private application deployment
+    dependsOn: Infrastructure
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), eq('${{ parameters.deployFunctions }}', 'true'))
+    jobs:
+      - job: PrivateDeploy
+        steps:
+          - checkout: self
+            persistCredentials: false
+          - bash: |
+              set -euo pipefail
+              export AZURE_CONFIG_DIR="$(Agent.TempDirectory)/azure-vm-mi"
+              mkdir -p "${AZURE_CONFIG_DIR}"
+              export VNETLAB_RESOURCE_GROUP='$(vnetlabResourceGroup)'
+              export VNETLAB_PRODUCER_APP='$(vnetlabProducerApp)'
+              export VNETLAB_WORKER_APP='$(vnetlabWorkerApp)'
+              export VNETLAB_KEY_VAULT='$(vnetlabKeyVault)'
+              bash ./scripts/deploy-functions.sh
+              if [[ '${{ parameters.runSmokeTest }}' == 'true' ]]; then
+                bash ./scripts/vm-smoke-test.sh
+              fi
+            displayName: Deploy and optionally smoke test with VM identity

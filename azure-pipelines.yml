@@ -1,0 +1,75 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+# This CI pipeline intentionally has no Azure service connection and must not be
+# authorized to use the private agent pool. Pull-request code runs only on a
+# disposable Microsoft-hosted agent with read-only repository access.
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  terraformVersion: 1.15.8
+  pythonVersion: "3.12"
+
+steps:
+  - checkout: self
+    persistCredentials: false
+
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: $(pythonVersion)
+    displayName: Select Python
+
+  - bash: |
+      set -euo pipefail
+      archive="$(Agent.TempDirectory)/terraform_$(terraformVersion)_linux_amd64.zip"
+      checksums="$(Agent.TempDirectory)/terraform_SHA256SUMS"
+      release="https://releases.hashicorp.com/terraform/$(terraformVersion)"
+      curl --fail --location --silent --show-error \
+        "${release}/terraform_$(terraformVersion)_linux_amd64.zip" --output "${archive}"
+      curl --fail --location --silent --show-error \
+        "${release}/terraform_$(terraformVersion)_SHA256SUMS" --output "${checksums}"
+      expected="$(grep "terraform_$(terraformVersion)_linux_amd64.zip" "${checksums}")"
+      printf '%s\n' "${expected}" | (cd "$(Agent.TempDirectory)" && sha256sum --check --strict)
+      sudo unzip -o "${archive}" -d /usr/local/bin
+      terraform version
+    displayName: Install verified Terraform CLI
+
+  - bash: |
+      set -euo pipefail
+      terraform -chdir=terraform fmt -check -recursive
+      terraform -chdir=terraform init -backend=false -input=false
+      terraform -chdir=terraform validate
+      terraform -chdir=terraform test
+    env:
+      TF_IN_AUTOMATION: "true"
+    displayName: Validate and test Terraform
+
+  - bash: |
+      set -euo pipefail
+      python -m venv .venv
+      .venv/bin/pip install --disable-pip-version-check \
+        -r requirements-dev.txt \
+        -r functions/producer/requirements.txt \
+        -r functions/worker/requirements.txt
+      .venv/bin/pip check
+      .venv/bin/ruff format --check functions tests
+      .venv/bin/ruff check functions tests
+      .venv/bin/pytest
+      (cd functions/producer && ../../.venv/bin/python -c \
+        "import function_app; assert len(function_app.app.get_functions()) == 2")
+      (cd functions/worker && ../../.venv/bin/python -c \
+        "import function_app; assert len(function_app.app.get_functions()) == 3")
+    displayName: Lint, test, and index both Function apps
+
+  - bash: |
+      set -euo pipefail
+      bash -n scripts/bootstrap-ado-agent.sh scripts/deploy-functions.sh scripts/vm-smoke-test.sh
+    displayName: Check shell scripts

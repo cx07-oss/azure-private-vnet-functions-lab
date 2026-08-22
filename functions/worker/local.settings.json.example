@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "API_CLIENT_TOKEN": "replace-for-local-development",
+    "COSMOS_ENDPOINT": "https://localhost:8081/",
+    "COSMOS_DATABASE": "orders",
+    "COSMOS_CONTAINER": "orders",
+    "SERVICE_BUS_QUEUE_NAME": "orders",
+    "ServiceBusConnection": "replace-for-local-development"
+  }
+}

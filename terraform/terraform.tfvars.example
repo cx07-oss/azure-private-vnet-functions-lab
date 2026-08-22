@@ -1,0 +1,16 @@
+# Copy this file to terraform.tfvars and supply your own values.
+# The recommended login flow sets ARM_SUBSCRIPTION_ID. Alternatively uncomment
+# this line and replace the placeholder with a real subscription ID.
+# subscription_id = "00000000-0000-0000-0000-000000000000"
+
+# Generate with: ssh-keygen -t ed25519 -f ~/.ssh/vnetlab -C vnetlab
+management_ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA... vnetlab"
+
+prefix      = "vnetlab"
+environment = "dev"
+location    = "australiaeast"
+
+tags = {
+  owner       = "replace-me"
+  cost-centre = "learning"
+}

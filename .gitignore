@@ -1,0 +1,36 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+terraform/terraform.tfvars
+backend.hcl
+terraform/backend.hcl
+.tools/
+
+# Function build/deployment output
+.python_packages/
+.venv/
+*.zip
+dist/
+build/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local secrets and keys
+*.pem
+*.key
+.env
+.env.*
+!.env.example
