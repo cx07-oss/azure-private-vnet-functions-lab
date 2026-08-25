@@ -1,1 +1,0 @@
-"""Order worker application package."""

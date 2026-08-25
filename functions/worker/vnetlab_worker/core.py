@@ -1,3 +1,5 @@
+"""Pure domain logic for the order worker."""
+
 from __future__ import annotations
 
 import hmac

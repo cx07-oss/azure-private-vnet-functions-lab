@@ -26,10 +26,12 @@ case "${target}" in
   producer)
     app_env_name="VNETLAB_PRODUCER_APP"
     expected_functions="health,create_order"
+    package_dir="producer"
     ;;
   worker)
     app_env_name="VNETLAB_WORKER_APP"
     expected_functions="process_order,health,get_order"
+    package_dir="vnetlab_worker"
     ;;
   *)
     usage >&2
@@ -116,7 +118,7 @@ mkdir -p "${stage_app}/.python_packages/lib/site-packages"
 cp -- "${source_dir}/function_app.py" "${stage_app}/"
 cp -- "${source_dir}/host.json" "${stage_app}/"
 cp -- "${source_dir}/requirements.txt" "${stage_app}/"
-cp -R -- "${source_dir}/${target}" "${stage_app}/${target}"
+cp -R -- "${source_dir}/${package_dir}" "${stage_app}/${package_dir}"
 find "${stage_app}" -type d -name __pycache__ -prune -exec rm -rf -- {} +
 find "${stage_app}" -type f -name '*.pyc' -delete
 
@@ -158,7 +160,7 @@ rm -f -- "${package}"
 )
 
 unzip -Z1 "${package}" | sed 's#/.*##' | sort -u >"${top_level_report}"
-for required in function_app.py host.json requirements.txt "${target}" .python_packages; do
+for required in function_app.py host.json requirements.txt "${package_dir}" .python_packages; do
   if ! grep -Fxq "${required}" "${top_level_report}"; then
     printf 'Package is missing required top-level entry: %s\n' "${required}" >&2
     exit 1

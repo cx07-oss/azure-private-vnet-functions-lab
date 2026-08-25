@@ -4,9 +4,9 @@ import json
 import logging
 
 import azure.functions as func
-from worker.adapters import OrderNotFoundError, OrderRepository
-from worker.config import Settings
-from worker.core import is_authorized, mark_processed
+from vnetlab_worker.adapters import OrderNotFoundError, OrderRepository
+from vnetlab_worker.config import Settings
+from vnetlab_worker.core import is_authorized, mark_processed
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -42,7 +42,7 @@ def process_order(message: func.ServiceBusMessage) -> None:
 
 
 @app.route(route="health", methods=["GET"])
-def health(_: func.HttpRequest) -> func.HttpResponse:
+def health(req: func.HttpRequest) -> func.HttpResponse:
     try:
         settings = Settings.from_environment()
         return json_response(

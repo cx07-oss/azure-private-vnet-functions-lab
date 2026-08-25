@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from worker.core import is_authorized, mark_processed
+from vnetlab_worker.core import is_authorized, mark_processed
 
 
 def test_mark_processed_adds_idempotency_fields() -> None:

@@ -20,7 +20,7 @@ def json_response(payload: dict, status_code: int) -> func.HttpResponse:
 
 
 @app.route(route="health", methods=["GET"])
-def health(_: func.HttpRequest) -> func.HttpResponse:
+def health(req: func.HttpRequest) -> func.HttpResponse:
     try:
         settings = Settings.from_environment()
         return json_response(

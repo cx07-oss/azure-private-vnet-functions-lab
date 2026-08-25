@@ -1,5 +1,5 @@
 from producer.config import Settings as ProducerSettings
-from worker.config import Settings as WorkerSettings
+from vnetlab_worker.config import Settings as WorkerSettings
 
 
 def test_producer_detects_unresolved_key_vault_reference() -> None:

@@ -140,3 +140,15 @@ To restore the normal remote-build deployment for both apps:
 cd ~/vnetlab
 bash scripts/deploy-functions.sh
 ```
+
+### Python worker indexing failures
+
+Run `func start --python --verbose` from each Function project root before
+deployment. The host performs stricter validation than importing
+`function_app.py` directly.
+
+- For `@app.route()`, the handler parameter must be named `req` unless the
+  decorator sets a different `trigger_arg_name` explicitly.
+- Do not name an application package `worker`. It can shadow or be shadowed by
+  the Azure Functions Python worker module. This project uses
+  `vnetlab_worker`.
