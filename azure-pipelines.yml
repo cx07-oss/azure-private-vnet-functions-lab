@@ -71,5 +71,5 @@ steps:
 
   - bash: |
       set -euo pipefail
-      bash -n scripts/bootstrap-ado-agent.sh scripts/deploy-functions.sh scripts/vm-smoke-test.sh
+      bash -n scripts/bootstrap-ado-agent.sh scripts/deploy-functions.sh scripts/deploy-function-self-contained.sh scripts/vm-smoke-test.sh
     displayName: Check shell scripts

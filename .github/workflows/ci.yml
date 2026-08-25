@@ -54,4 +54,4 @@ jobs:
             "import function_app; assert len(function_app.app.get_functions()) == 3")
 
       - name: Check shell scripts
-        run: bash -n scripts/bootstrap-ado-agent.sh scripts/deploy-functions.sh scripts/vm-smoke-test.sh
+        run: bash -n scripts/bootstrap-ado-agent.sh scripts/deploy-functions.sh scripts/deploy-function-self-contained.sh scripts/vm-smoke-test.sh

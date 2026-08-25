@@ -1,7 +1,7 @@
 resource "azurerm_cosmosdb_account" "main" {
   name                          = local.names.cosmos
   resource_group_name           = azurerm_resource_group.main.name
-  location                      = azurerm_resource_group.main.location
+  location                      = coalesce(var.cosmos_location, var.location)
   offer_type                    = "Standard"
   kind                          = "GlobalDocumentDB"
   local_authentication_enabled  = false
@@ -17,7 +17,7 @@ resource "azurerm_cosmosdb_account" "main" {
   }
 
   geo_location {
-    location          = azurerm_resource_group.main.location
+    location          = coalesce(var.cosmos_location, var.location)
     failover_priority = 0
   }
 

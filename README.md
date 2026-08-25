@@ -52,6 +52,8 @@ Azure does not support a private endpoint on every resource type. VMs are native
 - Permission to register the resource providers listed in `terraform/providers.tf`, especially `Microsoft.App` for Flex VNet integration.
 - Azure CLI, Terraform 1.8 or later, PowerShell 7, and OpenSSH.
 - A Flex-supported region. The default is `australiaeast`; verify with `az functionapp list-flexconsumption-locations -o table`.
+- If the workload region has no Cosmos DB capacity, set `cosmos_location` to another subscription-policy-allowed region. The Cosmos private endpoint remains in the workload VNet.
+- `function_runtime_version` can pin a Flex-supported Python runtime when a regional runtime has an indexing issue.
 - An SSH key. Create one with `ssh-keygen -t ed25519 -f ~/.ssh/vnetlab -C vnetlab`.
 
 ## Deploy the infrastructure

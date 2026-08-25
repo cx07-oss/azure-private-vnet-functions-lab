@@ -36,6 +36,13 @@ variable "location" {
   default     = "australiaeast"
 }
 
+variable "cosmos_location" {
+  description = "Optional Azure region for Cosmos DB. When null, Cosmos DB uses the main workload region."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
 variable "management_vm_size" {
   description = "Size of the private management VM."
   type        = string
@@ -78,6 +85,17 @@ variable "function_instance_memory_mb" {
   validation {
     condition     = contains([512, 2048, 4096], var.function_instance_memory_mb)
     error_message = "function_instance_memory_mb must be 512, 2048, or 4096."
+  }
+}
+
+variable "function_runtime_version" {
+  description = "Python runtime version for both Flex Consumption Function Apps."
+  type        = string
+  default     = "3.12"
+
+  validation {
+    condition     = contains(["3.11", "3.12", "3.13", "3.14"], var.function_runtime_version)
+    error_message = "function_runtime_version must be a Python version supported by Flex Consumption."
   }
 }
 

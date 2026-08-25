@@ -96,3 +96,47 @@ Diagnostic ingestion is asynchronous. Wait several minutes after generating traf
 - Confirm the deploying identity has `Website Contributor` on the specific app.
 - Remote build needs outbound HTTPS to Python package sources. The integration subnet permits required Internet egress; the protected Azure services still accept only private data-plane traffic.
 - Re-run `scripts/deploy-functions.sh`; it retries during RBAC and SCM propagation.
+
+### Self-contained Python deployment diagnostic
+
+If OneDeploy remote build succeeds but the Python worker repeatedly restarts and
+indexes zero functions, isolate dependency materialization with one reversible,
+self-contained deployment. Run this only from the Linux management VM. The
+script refuses to build unless the selected Python executable's major/minor
+version exactly matches the live Flex runtime.
+
+```bash
+cd ~/vnetlab
+source /etc/profile.d/vnetlab.sh
+python3 --version
+bash scripts/deploy-function-self-contained.sh producer
+```
+
+If the app runs Python 3.11 but the VM's `python3` is 3.12, install or otherwise
+provide a Linux Python 3.11 executable. This user-level `uv` approach leaves
+the VM system Python unchanged:
+
+```bash
+python3 -m venv ~/.vnetlab-build-tools
+~/.vnetlab-build-tools/bin/pip install --disable-pip-version-check uv
+~/.vnetlab-build-tools/bin/uv python install 3.11
+~/.vnetlab-build-tools/bin/uv venv --python 3.11 --seed ~/.vnetlab-function-python311
+build_python="$HOME/.vnetlab-function-python311/bin/python"
+VNETLAB_BUILD_PYTHON="$build_python" bash scripts/deploy-function-self-contained.sh producer
+```
+
+Replace `3.11` with the live version reported by the script if the Function
+runtime changes later.
+
+The script creates a clean staging tree, installs dependencies under
+`.python_packages/lib/site-packages`, verifies the exact staged imports and
+decorator metadata, records the package top level and SHA-256, and deploys with
+`--build-remote false`. Evidence is written under `dist/self-contained/`, which
+is ignored by Git. Review logs for credentials before sharing them externally.
+
+To restore the normal remote-build deployment for both apps:
+
+```bash
+cd ~/vnetlab
+bash scripts/deploy-functions.sh
+```

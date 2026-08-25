@@ -16,6 +16,8 @@ terraform/backend.hcl
 *.zip
 dist/
 build/
+support-evidence/
+azure-functions-support-evidence/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -31,6 +33,15 @@ Thumbs.db
 # Local secrets and keys
 *.pem
 *.key
+*.pfx
+*.p12
+*.jks
+*.keystore
+*.kdbx
+id_rsa
+id_ed25519
 .env
 .env.*
 !.env.example
+**/local.settings.json
+.azure/

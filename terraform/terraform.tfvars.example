@@ -10,6 +10,13 @@ prefix      = "vnetlab"
 environment = "dev"
 location    = "australiaeast"
 
+# Optional: place Cosmos DB in another policy-allowed region when the workload
+# region has no Cosmos capacity. Private Endpoint supports this cross-region.
+# cosmos_location = "koreacentral"
+
+# Optional runtime override for regional/platform compatibility.
+# function_runtime_version = "3.11"
+
 tags = {
   owner       = "replace-me"
   cost-centre = "learning"

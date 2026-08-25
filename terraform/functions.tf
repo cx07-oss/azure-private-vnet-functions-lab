@@ -33,7 +33,7 @@ resource "azurerm_function_app_flex_consumption" "main" {
   storage_authentication_type                    = "UserAssignedIdentity"
   storage_user_assigned_identity_id              = azurerm_user_assigned_identity.function_host[each.key].id
   runtime_name                                   = "python"
-  runtime_version                                = "3.12"
+  runtime_version                                = var.function_runtime_version
   maximum_instance_count                         = var.function_maximum_instance_count
   instance_memory_in_mb                          = var.function_instance_memory_mb
   virtual_network_subnet_id                      = azurerm_subnet.functions.id
@@ -60,6 +60,7 @@ resource "azurerm_function_app_flex_consumption" "main" {
     AzureWebJobsStorage__accountName              = azurerm_storage_account.functions[each.key].name
     AzureWebJobsStorage__credential               = "managedidentity"
     AzureWebJobsStorage__clientId                 = azurerm_user_assigned_identity.function_host[each.key].client_id
+    AzureWebJobsFeatureFlags                      = "EnableWorkerIndexing"
     APPLICATIONINSIGHTS_AUTHENTICATION_STRING     = "ClientId=${azurerm_user_assigned_identity.function_host[each.key].client_id};Authorization=AAD"
     API_CLIENT_TOKEN                              = "@Microsoft.KeyVault(SecretUri=https://${azurerm_key_vault.main.name}.vault.azure.net/secrets/api-client-token/)"
     COSMOS_ENDPOINT                               = "@Microsoft.KeyVault(SecretUri=https://${azurerm_key_vault.main.name}.vault.azure.net/secrets/cosmos-endpoint/)"

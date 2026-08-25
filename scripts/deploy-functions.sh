@@ -89,9 +89,24 @@ deploy_app() {
   return 1
 }
 
+remove_injected_deployment_connection_string() {
+  local app_name="$1"
+
+  # AzureRM can inject a key-based deployment setting with an empty AccountKey
+  # even when Flex deployment storage is configured for managed identity. If
+  # present, the host can select the broken key path instead of the UAMI path.
+  az functionapp config appsettings delete \
+    --resource-group "${resource_group}" \
+    --name "${app_name}" \
+    --setting-names DEPLOYMENT_STORAGE_CONNECTION_STRING \
+    --output none
+}
+
 package_app producer
 package_app worker
 
+remove_injected_deployment_connection_string "${producer_app}"
+remove_injected_deployment_connection_string "${worker_app}"
 wait_for_key_vault_references "${producer_app}"
 wait_for_key_vault_references "${worker_app}"
 deploy_app "${producer_app}" "${dist_dir}/producer.zip"
